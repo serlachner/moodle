@@ -203,4 +203,110 @@ class core_badges_external extends external_api {
             )
         );
     }
+
+    /**
+     * Describes the parameters for get_users.
+     *
+     * @return external_function_parameters
+     * @since Moodle 3.7
+     */
+    public static function get_users_parameters() {
+        return new external_function_parameters (
+            array(
+                'badgeid' => new external_value(PARAM_INT, 'Users only for this badge id, empty for all badges', VALUE_DEFAULT, 0),
+            )
+        );
+    }
+
+    /**
+     * Returns the list of users that received given badges.
+     *
+     * @param int $badgeid      badge id
+     * @return array array containing warnings and the users that hold given badges
+     * @since  Moodle 3.7
+     * @throws moodle_exception
+     */
+    public static function get_users($badgeid = 0) {
+        global $CFG, $USER, $PAGE;
+
+        $warnings = array();
+
+        $params = array(
+            'badgeid' => $badgeid,
+        );
+        $params = self::validate_parameters(self::get_users_parameters(), $params);
+
+        if (empty($CFG->enablebadges)) {
+            throw new moodle_exception('badgesdisabled', 'badges');
+        }
+
+        if (empty($CFG->badges_allowcoursebadges) && $params['courseid'] != 0) {
+            throw new moodle_exception('coursebadgesdisabled', 'badges');
+        }
+
+        // Validate the badge.
+        $badge = new badge($badgeid);
+        if (!$badge->is_active()) {
+            throw new moodle_exception('error:badgenotactive', 'badges');
+        }
+
+        /// capability and context checking of core_group_create_groups
+        $context = context_user::instance($USER->id);
+        self::validate_context($context);
+        require_capability('moodle/badges:viewotherbadges', $context);
+
+
+        $awards = $badge->get_awards();
+
+        $result = array();
+        $result['userawards'] = array();
+        $result['warnings'] = $warnings;
+
+        foreach ($awards as $award) {
+            $user = core_user::get_user($award->userid, '*', MUST_EXIST);
+
+            $useraward = (object) array(
+                'userid' => $user->id,
+                'username' => $user->username,
+                'idnumber' => $user->idnumber,
+                'suspended' => $user->suspended,
+                'badgeid' => $badge->id,
+                'dateissued' => $award->dateissued,
+                'dateexpire' => $award->dateexpire,
+            );
+
+            $result['userawards'][] = $useraward;
+
+            //$exporter = new user_badge_exporter($badge, $related);
+            //$result['badges'][] = $exporter->export($PAGE->get_renderer('core'));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Describes the get_users return value.
+     *
+     * @return external_single_structure
+     * @since Moodle 3.7
+     */
+    public static function get_users_returns() {
+        return new external_single_structure(
+            array('userawards' => new external_multiple_structure(
+                new external_single_structure(
+                    array(
+                        'userid'          => new external_value(core_user::get_property_type('id'), 'ID of the user'),
+                        'username'    => new external_value(core_user::get_property_type('username'), 'The username', VALUE_OPTIONAL),
+                        'idnumber'    => new external_value(core_user::get_property_type('idnumber'), 'External id of the user', VALUE_OPTIONAL),
+                        'suspended'   => new external_value(core_user::get_property_type('suspended'), 'Is the user suspended', VALUE_OPTIONAL),
+                        'badgeid'     => new external_value(PARAM_INT, "ID of the badge"),
+                        'dateissued'  => new external_value(PARAM_INT, 'Date when the badge was awarded', VALUE_OPTIONAL),
+                        'dateexpire'  => new external_value(PARAM_INT, 'Date when the badge expires', VALUE_OPTIONAL),
+                    )
+                )
+            ),
+                'warnings' => new external_warnings('always set to \'key\'', 'faulty key name')
+            )
+        );
+    }
 }

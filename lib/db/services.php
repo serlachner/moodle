@@ -82,6 +82,14 @@ $functions = array(
         'capabilities'  => 'moodle/badges:viewotherbadges',
         'services'      => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
+    'core_badges_get_users' => array(
+        'classname'     => 'core_badges_external',
+        'methodname'    => 'get_users',
+        'description'   => 'Returns the list of users that received the given badges.',
+        'type'          => 'read',
+        'capabilities'  => 'moodle/badges:viewotherbadges',
+        'services'      => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
     'core_blog_get_entries' => array(
         'classname'   => 'core_blog\external',
         'methodname'  => 'get_entries',

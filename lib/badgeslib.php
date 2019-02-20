@@ -176,7 +176,7 @@ class badge {
         $data = $DB->get_record('badge', array('id' => $badgeid));
 
         if (empty($data)) {
-            print_error('error:nosuchbadge', 'badges', $badgeid);
+            print_error('error:nosuchbadge', 'badges', '', $badgeid);
         }
 
         foreach ((array)$data as $field => $value) {
@@ -409,7 +409,7 @@ class badge {
         global $DB;
 
         $awards = $DB->get_records_sql(
-                'SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
+                'SELECT b.userid, b.dateissued, b.dateexpire, b.uniquehash, u.firstname, u.lastname
                     FROM {badge_issued} b INNER JOIN {user} u
                         ON b.userid = u.id
                     WHERE b.badgeid = :badgeid AND u.deleted = 0', array('badgeid' => $this->id));

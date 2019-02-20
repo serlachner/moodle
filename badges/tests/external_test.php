@@ -63,6 +63,8 @@ class core_badges_external_testcase extends externallib_advanced_testcase {
         $this->getDataGenerator()->enrol_user($this->student->id, $this->course->id, $this->studentrole->id, 'manual');
         $this->getDataGenerator()->enrol_user($this->teacher->id, $this->course->id, $this->teacherrole->id, 'manual');
 
+        //$this->badges = array();
+
         // Mock up a site badge.
         $now = time();
         $badge = new stdClass();
@@ -127,6 +129,8 @@ class core_badges_external_testcase extends externallib_advanced_testcase {
         $competency->targetcode = 'C2 code';
         $badge->save_alignment($competency);
 
+        //array_push($this->badges, $badge);
+
         // Now a course badge.
         $badge->id = null;
         $badge->name = "Test badge course";
@@ -143,6 +147,8 @@ class core_badges_external_testcase extends externallib_advanced_testcase {
 
         // Make the site badge a related badge.
         $badge->add_related_badges(array($badgeid));
+
+        //array_push($this->badges, $badge);
     }
 
     /**
@@ -241,6 +247,33 @@ class core_badges_external_testcase extends externallib_advanced_testcase {
                 }
             } else {
                 $this->assertFalse(isset($badge['message']));
+            }
+        }
+    }
+
+    /**
+     * Test get users.
+     */
+    public function test_get_users() {
+
+        $this->setUser($this->teacher);
+
+        $badges = array_merge(badges_get_badges(BADGE_TYPE_COURSE), badges_get_badges(BADGE_TYPE_SITE));
+        $this->assertCount(2, $badges);
+
+        foreach ($badges as $badge) {
+            $result = core_badges_external::get_users($badge->id);
+            $result = external_api::clean_returnvalue(core_badges_external::get_users_returns(), $result);
+
+            $this->assertCount(1, $result['userawards']);
+            foreach ($result['userawards'] as $useraward){
+                $this->assertEquals($this->student->id,$useraward['userid']);
+                $this->assertEquals($this->student->username,$useraward['username']);
+                $this->assertEquals($this->student->idnumber,$useraward['idnumber']);
+                $this->assertEquals($this->student->suspended,(int)$useraward['suspended']);
+                $this->assertEquals($badge->id,$useraward['badgeid']);
+                $this->assertEquals($badge->dateissued,$useraward['dateissued']);
+                $this->assertEquals($badge->dateexpire,$useraward['dateexpire']);
             }
         }
     }
